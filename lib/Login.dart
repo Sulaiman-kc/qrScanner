@@ -14,13 +14,16 @@ class MyHomePage extends StatefulWidget {
 }
 
 
+
 class _MyHomePageState extends State<MyHomePage> {
   bool _isLogin = false;
   String username = '';
   String password = '';
   bool error = false;
+  bool valueError = false;
   final LocalStorage storage = new LocalStorage('data');
-
+  List values =  ["Purchase", "Transfer", "Sale"];
+  String value = '';
 
   void initState() {
     super.initState();
@@ -46,17 +49,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _login(){
-    if(this.username == 'admin' && this.password == 'admin'){
+    this.error = false;
+    this.valueError = false;
+    if(this.username == 'admin' && this.password == 'admin' && this.value != ''){
       this.storage.ready.then((value) => {
-        storage.setItem('isLoggedIn', 'true')
+        storage.setItem('isLoggedIn', 'true'),
+        storage.setItem('type', this.value.toString()),
+        storage.setItem('name', this.username.toString())
       });
       Navigator.of(context).pushReplacement(MaterialPageRoute(
           builder: (_) => DashboardPage()
       ));
     }
-    else{
+    else if(this.username != 'admin' || this.password != 'admin'){
       setState(() {
         this.error = true;
+      });
+    }
+    else{
+      setState(() {
+        this.valueError = true;
       });
     }
   }
@@ -72,7 +84,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ):
       Container(
         padding: EdgeInsets.all(20.0),
-        color: Colors.grey.shade800,
+        color: Colors.white70,
         child: ListView(
           children: <Widget>[
             Column(
@@ -82,12 +94,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 SizedBox(height: 50,),
                 ListTile(
                     title: TextField(
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.grey.shade800),
                       decoration: InputDecoration(
                           hintText: "User name:",
-                          hintStyle: TextStyle(color: Colors.white70),
+                          hintStyle: TextStyle(color: Colors.grey.shade800),
                           border: InputBorder.none,
-                          icon: Icon(Icons.email, color: Colors.white30,)
+                          icon: Icon(Icons.email, color: Colors.grey.shade800,)
                       ),
                       onChanged: (val){
                         setState(() {
@@ -100,13 +112,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 Divider(color: Colors.grey.shade600,),
                 ListTile(
                     title: TextField(
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.grey.shade800),
                       obscureText: true,
                       decoration: InputDecoration(
                           hintText: "Password:",
-                          hintStyle: TextStyle(color: Colors.white70),
+                          hintStyle: TextStyle(color: Colors.grey.shade800),
                           border: InputBorder.none,
-                          icon: Icon(Icons.lock, color: Colors.white30,)
+                          icon: Icon(Icons.lock, color: Colors.grey.shade800,)
                       ),
                       onChanged: (val){
                         setState(() {
@@ -117,14 +129,65 @@ class _MyHomePageState extends State<MyHomePage> {
                     )
                 ),
                 Divider(color: Colors.grey.shade600,),
-                SizedBox(height: 20,),
+                SizedBox(height: 10,),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Row(
+                      children: [
+                        Radio(
+                          groupValue: value,
+                          value: this.values[0],
+                          onChanged: (value1) {
+                            setState(() {
+                              this.value = value1;
+                            });
+                          },
+                        ),
+                        Text(this.values[0]),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Radio(
+                          groupValue: value,
+                          value: this.values[1],
+                          onChanged: (value1) {
+                            setState(() {
+                              print(value1);
+                              this.value = value1;
+                            });
+                          },
+                        ),
+                        Text(this.values[1]),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Radio(
+                          groupValue: value,
+                          value: this.values[2],
+                          onChanged: (value1) {
+                            setState(() {
+                              print(value1);
+                              this.value = value1;
+                            });
+                          },
+                        ),
+                        Text(this.values[2]),
+                      ],
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10,),
                 this.error?Text('Incorrect username or password', style: TextStyle(color: Colors.redAccent),):Container(),
+                this.valueError?Text('Select type', style: TextStyle(color: Colors.redAccent),):Container(),
                 Row(
                   children: <Widget>[
                     Expanded(
                       child: RaisedButton(
                         onPressed: _login,
-                        color: Colors.cyan,
+                        color: Color(0xFF2CA3D4),
                         child: Text('Login', style: TextStyle(color: Colors.white70, fontSize: 16.0),),
                       ),
                     ),
