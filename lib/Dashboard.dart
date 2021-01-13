@@ -1,34 +1,22 @@
 
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:io' as io;
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
-import 'package:camera/camera.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:barcode_scan/barcode_scan.dart';
-import 'package:flutter/material.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:pdf/widgets.dart' as pw;
-// import 'package:syncfusion_flutter_pdf/pdf.dart';
-// import 'package:simple_permissions/simple_permissions.dart';/
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'BottomSheet.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_share_file/flutter_share_file.dart';
 import 'package:share/share.dart';
-// import 'package:toast/toast.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:pdf/widgets.dart' as pw;
 
 import 'Login.dart';
 
@@ -45,34 +33,30 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  final GlobalKey<NavigatorState> navigatorKey = new GlobalKey<NavigatorState>();
   final LocalStorage storage = new LocalStorage('data');
-  // Permission permission;
   int _pageIndex = 0;
-  int _selectedIndex = 0;
-  CameraController _controller;
   var qrText = '';
   var flashState = flashOn;
   var cameraState = frontCamera;
-  Future<void> _initializeControllerFuture;
   var ImagePath;
   bool showCapturedPhoto = false;
   List data = [];
   int length = 0;
   get cameras => null;
   List dataArray = [];
-  // Future<void> _initializeControllerFuture;
   ArchiveSheet archiveSheet = ArchiveSheet();
   List dataLength = [];
   File _image;
   String type;
   String name;
+  String cust_name;
   final picker = ImagePicker();
   var date;
 
   Future getImage(context) async {
     _image = null;
     final pickedFile = await picker.getImage(source: ImageSource.camera, maxWidth: MediaQuery.of(context).size.width , maxHeight: MediaQuery.of(context).size.width);
-    // print(pickedFile.path);
     setState(() {
       if (pickedFile != null) {
         _image = File(pickedFile.path);
@@ -94,38 +78,37 @@ class _DashboardPageState extends State<DashboardPage> {
     String formattedDate = DateFormat('dd/MM/yyyy HH:mm aaa').format(date);
     this.requestPermission();
     final doc = pw.Document();
-    // final image = PdfImage.file(
-    //   pdf.document,
-    //   bytes: File('test.webp').readAsBytesSync(),
-    // );
     doc.addPage(pw.MultiPage(
+      maxPages: 1000,
+        // crossAxisAlignment: pw.CrossAxisAlignment.start,
+        // mainAxisAlignment: pw.MainAxisAlignment.center,
         header: (pw.Context context) {
-          // if (context.pageNumber == 1) {
-          //   return null;
-          // }
           return pw.Container(
-              // alignment: pw.Alignment.centerRight,
-              // margin: const pw.EdgeInsets.only(bottom: 2.0 * PdfPageFormat.mm),
-              // padding: const pw.EdgeInsets.only(bottom: 2.0 * PdfPageFormat.mm),
-              // decoration: const pw.BoxDecoration(
-              //     border: pw.BoxBorder(
-              //         bottom: true, width: 0.1, color: PdfColors.grey)),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(this.type.toString(),
-                      style: pw.Theme.of(context)
-                          .defaultTextStyle
-                          .copyWith(color: PdfColors.grey800)),
-                  pw.Text(this.name.toString().toUpperCase(),
-                      style: pw.Theme.of(context)
-                          .defaultTextStyle
-                          .copyWith(color: PdfColors.grey800)),
-                  pw.Text((formattedDate).toString(),
-                      style: pw.Theme.of(context)
-                          .defaultTextStyle
-                          .copyWith(color: PdfColors.grey800)),
-                ]
+              child: pw.Padding(
+                padding: pw.EdgeInsets.only(bottom: 14),
+                child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(this.type.toString(),
+                          style: pw.Theme.of(context)
+                              .defaultTextStyle
+                              .copyWith(color: PdfColors.grey800)),
+                      pw.Text(this.name.toString().toUpperCase(),
+                          style: pw.Theme.of(context)
+                              .defaultTextStyle
+                              .copyWith(color: PdfColors.grey800)),
+                      if(this.cust_name != 'null' && this.cust_name != null && this.cust_name != '')
+                        pw.Text(this.cust_name.toString().toUpperCase(),
+                            style: pw.Theme.of(context)
+                                .defaultTextStyle
+                                .copyWith(color: PdfColors.grey800)),
+                      pw.Text((formattedDate).toString(),
+                          style: pw.Theme.of(context)
+                              .defaultTextStyle
+                              .copyWith(color: PdfColors.grey800)),
+                      // pw.SizedBox(height: 20)
+                    ]
+                )
               )
           );
         },
@@ -139,92 +122,213 @@ class _DashboardPageState extends State<DashboardPage> {
                       .defaultTextStyle
                       .copyWith(color: PdfColors.grey)));
         },
-        margin: pw.EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+        margin: pw.EdgeInsets.only(left: 70, right: 20, top: 30, bottom: 30),
+        // symmetric(horizontal: 30, vertical: 20),
         pageFormat:
-        PdfPageFormat.letter.copyWith(marginBottom: 1.5 * PdfPageFormat.cm),
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        PdfPageFormat.a4.copyWith(marginBottom: 1.5 * PdfPageFormat.cm),
         build: (pw.Context context) => <pw.Widget>[
-          pw.Column(
-            children: [
+
+          // pw.Column(
+          //   children: [
               for(var i = 0,k = 0;this.dataArray.length>i;i++)
                 pw.Column(
                     children: [
-                      pw.SizedBox(height: 20),
-                      pw.Table(
-                        columnWidths: {
-                          0: pw.FlexColumnWidth(1),
-                          1: pw.FlexColumnWidth(1),
-                          2: pw.FlexColumnWidth(1),
-                          3: pw.FlexColumnWidth(1),
-                        },
-                        border: pw.TableBorder(width: 1.0, color: PdfColors.grey),
-                        children: [
-                          // if(i == 0)
-                            pw.TableRow(
-                              decoration: pw.BoxDecoration(
-                                color: PdfColors.blueGrey50,
+                      pw.SizedBox(height: 8),
+                      pw.Container(
+                        color: PdfColors.blueGrey50,
+                        child: pw.Row(
+                            // mainAxisAlignment: pw.MainAxisAlignment.start,
+                            children: [
+                              pw.Expanded(
+                                flex: 3,
+                                child: pw.Container(
+                                  decoration: pw.BoxDecoration(
+                                      border: pw.BoxBorder(color: PdfColors.grey, bottom: true, left: true, top: true, right: true)
+                                  ),
+                                  child: pw.Padding(
+                                    padding: const pw.EdgeInsets.all(8),
+                                    child: pw.Text('Code' , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold),),
+                                  ),
+                                )
                               ),
-                              children: [
-                                pw.Padding(
-                                  padding: const pw.EdgeInsets.all(8),
-                                  child: pw.Text('Code' , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),),
-                                ),
-                                pw.Padding(
-                                  padding: const pw.EdgeInsets.all(8),
-                                  child: pw.Text('Image' , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),),
-                                ),
-                                pw.Padding(
-                                  padding: const pw.EdgeInsets.all(8),
-                                  child: pw.Text('Cable No.' , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),),
-                                ),
-                                pw.Padding(
-                                  padding: const pw.EdgeInsets.all(8),
-                                  child: pw.Text('Length' , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),),
-                                ),
-                              ]
-                          ),
-                          for(var j = 0;j<dataArray[i].length;j++,k++)
-                            // if(i == 0)
-                            pw.TableRow(
-                                decoration: pw.BoxDecoration(
-                                  // color: PdfColors.lightBlue,
-                                ),
-                                children: [
-                                  pw.Padding(
-                                    padding: const pw.EdgeInsets.all(10),
-                                    child: pw.Text(dataArray[i][j]['coil_no'] , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 10),),
+                              pw.Expanded(
+                                flex: 3,
+                                child: pw.Container(
+                                  decoration: pw.BoxDecoration(
+                                      border: pw.BoxBorder(color: PdfColors.grey, bottom: true, left: true, top: true, right: true)
                                   ),
-                                  pw.Container(
-                                    width: 70,
-                                    // height: 30,
-                                    child: pw.Image(
-                                      PdfImage.jpeg(
-                                        doc.document,
-                                        image: File(dataArray[i][j]['image']).readAsBytesSync(),
-                                      ),
-                                      width: 40,
-                                      height: 40,
-                                      fit: pw.BoxFit.fitWidth,
-                                    ),
+                                  child: pw.Padding(
+                                    padding: const pw.EdgeInsets.all(8),
+                                    child: pw.Text('Image' , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontWeight: pw.FontWeight.bold),),
                                   ),
-                                  pw.Padding(
-                                    padding: const pw.EdgeInsets.all(10),
-                                    child: pw.Text(dataArray[i][j]['category'] , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontSize: 10),),
+                                )
+                              ),
+                              pw.Expanded(
+                                flex: 3,
+                                child: pw.Container(
+                                  decoration: pw.BoxDecoration(
+                                      border: pw.BoxBorder(color: PdfColors.grey, bottom: true, left: true, top: true, right: true)
                                   ),
-                                  pw.Padding(
-                                    padding: const pw.EdgeInsets.all(10),
-                                    child: pw.Text(dataArray[i][j]['length'] , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontSize: 10),),
+                                  child: pw.Padding(
+                                    padding: const pw.EdgeInsets.all(8),
+                                    child: pw.Text('Cable No.' , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontWeight: pw.FontWeight.bold),),
                                   ),
-                                ]
-                            ),
-                        ],
+                                )
+                              ),
+                              pw.Expanded(
+                                flex: 3,
+                                child: pw.Container(
+                                  decoration: pw.BoxDecoration(
+                                      border: pw.BoxBorder(color: PdfColors.grey, bottom: true, left: true, top: true, right: true)
+                                  ),
+                                  child: pw.Padding(
+                                    padding: const pw.EdgeInsets.all(8),
+                                    child: pw.Text('Length' , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontWeight: pw.FontWeight.bold),),
+                                  ),
+                                )
+                              ),
+                            ]
+                        ),
                       ),
+                      for(var j = 0;j<dataArray[i].length;j++,k++)
+                        pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.start,
+                            children: [
+                              // pw.SizedBox(height: 3),
+                              pw.Expanded(
+                                flex: 3,
+                                child: pw.Container(
+                                  decoration: pw.BoxDecoration(
+                                      border: pw.BoxBorder(color: PdfColors.grey, bottom: true, left: true, top: true)
+                                  ),
+                                  child: pw.Padding(
+                                    padding: const pw.EdgeInsets.all(13),
+                                    child: pw.Text(dataArray[i][j]['coil_no'] , textAlign: pw.TextAlign.center,),
+                                  ),
+                                )
+                              ),
+                            pw.Expanded(
+                              flex: 3,
+                              child: pw.Container(
+                                decoration: pw.BoxDecoration(
+                                    border: pw.BoxBorder(color: PdfColors.grey, bottom: true, left: true, top: true)
+                                ),
+                                // width: 170,
+                                // height: 30,
+                                child: pw.Image(
+                                  PdfImage.jpeg(
+                                    doc.document,
+                                    image: File(dataArray[i][j]['image']).readAsBytesSync(),
+                                  ),
+                                  // width: 40,
+                                  height: 40,
+                                  fit: pw.BoxFit.fitHeight,
+                                ),
+                              ),
+                            ),
+                          pw.Expanded(
+                            flex: 3,
+                            child: pw.Container(
+                              decoration: pw.BoxDecoration(
+                                  border: pw.BoxBorder(color: PdfColors.grey, bottom: true, left: true, top: true)
+                              ),
+                              child: pw.Padding(
+                                padding: const pw.EdgeInsets.all(13),
+                                child: pw.Text(dataArray[i][j]['category'] , textAlign: pw.TextAlign.center,),
+                              ),
+                            )
+                          ),
+                          pw.Expanded(
+                            flex: 3,
+                            child: pw.Container(
+                              decoration: pw.BoxDecoration(
+                                  border: pw.BoxBorder(color: PdfColors.grey, bottom: true, left: true, top: true, right: true)
+                              ),
+                              child: pw.Padding(
+                                padding: const pw.EdgeInsets.all(13),
+                                child: pw.Text(dataArray[i][j]['length'] , textAlign: pw.TextAlign.center,),
+                              ),
+                            )
+                          )
+                        ]
+                      ),
+                      // pw.SizedBox(height: 20),
+                      // pw.Table(
+                      //   tableWidth: pw.TableWidth.max,
+                      //   columnWidths: {
+                      //     0: pw.FlexColumnWidth(1),
+                      //     1: pw.FlexColumnWidth(1),
+                      //     2: pw.FlexColumnWidth(1),
+                      //     3: pw.FlexColumnWidth(1),
+                      //   },
+                      //   border: pw.TableBorder(width: 1.0, color: PdfColors.grey),
+                      //   children: [
+                      //     // if(i == 0)
+                      //       pw.TableRow(
+                      //         decoration: pw.BoxDecoration(
+                      //           color: PdfColors.blueGrey50,
+                      //         ),
+                      //         children: [
+                      //           pw.Padding(
+                      //             padding: const pw.EdgeInsets.all(8),
+                      //             child: pw.Text('Code' , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontWeight: pw.FontWeight.bold),),
+                      //           ),
+                      //           pw.Padding(
+                      //             padding: const pw.EdgeInsets.all(8),
+                      //             child: pw.Text('Image' , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontWeight: pw.FontWeight.bold),),
+                      //           ),
+                      //           pw.Padding(
+                      //             padding: const pw.EdgeInsets.all(8),
+                      //             child: pw.Text('Cable No.' , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontWeight: pw.FontWeight.bold),),
+                      //           ),
+                      //           pw.Padding(
+                      //             padding: const pw.EdgeInsets.all(8),
+                      //             child: pw.Text('Length' , textAlign: pw.TextAlign.center , style: pw.TextStyle(fontWeight: pw.FontWeight.bold),),
+                      //           ),
+                      //         ]
+                      //     ),
+                      //     for(var j = 0;j<dataArray[i].length;j++,k++)
+                      //       // if(i == 0)
+                      //       pw.TableRow(
+                      //           decoration: pw.BoxDecoration(
+                      //             // color: PdfColors.lightBlue,
+                      //           ),
+                      //           children: [
+                      //             pw.Padding(
+                      //               padding: const pw.EdgeInsets.all(10),
+                      //               child: pw.Text(dataArray[i][j]['coil_no'] , textAlign: pw.TextAlign.center,),
+                      //             ),
+                      //             pw.Container(
+                      //               width: 70,
+                      //               // height: 30,
+                      //               child: pw.Image(
+                      //                 PdfImage.jpeg(
+                      //                   doc.document,
+                      //                   image: File(dataArray[i][j]['image']).readAsBytesSync(),
+                      //                 ),
+                      //                 width: 40,
+                      //                 height: 40,
+                      //                 fit: pw.BoxFit.fitWidth,
+                      //               ),
+                      //             ),
+                      //             pw.Padding(
+                      //               padding: const pw.EdgeInsets.all(10),
+                      //               child: pw.Text(dataArray[i][j]['category'] , textAlign: pw.TextAlign.center,),
+                      //             ),
+                      //             pw.Padding(
+                      //               padding: const pw.EdgeInsets.all(10),
+                      //               child: pw.Text(dataArray[i][j]['length'] , textAlign: pw.TextAlign.center,),
+                      //             ),
+                      //           ]
+                      //       ),
+                      //   ],
+                      // ),
                       pw.SizedBox(height: 10),
                       pw.Table(
                         children: [
                           pw.TableRow(
                               children: [
-                                pw.Text('No of Records: '+ this.dataArray[i].length.toString() , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.black),),
+                                pw.Text('No of Coils: '+ this.dataArray[i].length.toString() , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.black),),
                                 pw.Text('Length: '+ this.dataLength[i].toString() , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: PdfColors.black),),
                               ]
                           )
@@ -237,8 +341,8 @@ class _DashboardPageState extends State<DashboardPage> {
                 children: [
                   pw.TableRow(
                       children: [
-                        pw.Text('Total Records: '+ this.data.length.toString() , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold,height: 1.4, color: PdfColors.black),),
-                        pw.Text('Total Length: '+ this.length.toString() , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, height: 1.4, color: PdfColors.black),),
+                        pw.Text('Total Coils: '+ this.data.length.toString() , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold,height: 1.4, color: PdfColors.black),),
+                        pw.Text('Total Length: '+ this.length.toString() , textAlign: pw.TextAlign.center, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, height: 1.4, color: PdfColors.black),),
                       ]
                   )
                 ],
@@ -246,7 +350,8 @@ class _DashboardPageState extends State<DashboardPage> {
             ]
           ),
 
-        ]));
+        // ])
+    );
     var name = (DateTime.now()).millisecondsSinceEpoch;
     var path1 = '/storage/emulated/0/Download/$name.pdf';
     print(path1.toString());
@@ -268,145 +373,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
   }
 
-  // getGrid(context, flag) async {
-  //   this.requestPermission();
-  //   final PdfDocument document = PdfDocument();
-  //   final PdfGrid grid = PdfGrid();
-  //   PdfPage page;// = document.pages.add()
-  //   double height = 0;
-  //   double textHeight = 20;
-  //   for(var i = 0; this.data.length>i;i++){
-  //     final Uint8List imageData = File(this.data[i]['image']).readAsBytesSync();
-  //     final PdfBitmap image = PdfBitmap(imageData);
-  //     if(i % 3 == 0){
-  //       page = document.pages.add();
-  //       height = 15;
-  //       textHeight = 35;
-  //     }
-  //     else{
-  //       height = height + 250.0;
-  //       textHeight = textHeight + 250.0;
-  //     }
-  //     page.graphics.drawLine(
-  //         PdfPen(PdfColor(0, 0, 0), width: MediaQuery.of(context).size.width*3),
-  //         Offset(0, 239),
-  //         Offset(0, 241));
-  //     // print(i);
-  //     // print(i == this.data.length);
-  //     if(i + 1  == this.data.length){
-  //       if(this.data.length - 1 % 3 == 1){
-  //         print('hello');
-  //         page.graphics.drawLine(
-  //             PdfPen(PdfColor(0, 0, 0), width: MediaQuery.of(context).size.width*3),
-  //             Offset(0, 489),
-  //             Offset(0, 491));
-  //       }
-  //     }else{
-  //       page.graphics.drawLine(
-  //           PdfPen(PdfColor(0, 0, 0), width: MediaQuery.of(context).size.width*3),
-  //           Offset(0, 489),
-  //           Offset(0, 491));
-  //     }
-  //
-  //
-  //
-  //     PdfTextElement textElement1 = PdfTextElement(
-  //         text:
-  //         (i+1).toString()+'.',
-  //         font: PdfStandardFont(PdfFontFamily.helvetica, 12));
-  //     textElement1.font = PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold);
-  //     PdfLayoutResult layoutResult1 = textElement1.draw(
-  //         page: page,
-  //         bounds: Rect.fromLTWH(
-  //             0, height, page.getClientSize().width - 250, page.getClientSize().height));
-  //
-  //     PdfTextElement textElement = PdfTextElement(
-  //         text:
-  //         'Category code :',
-  //         font: PdfStandardFont(PdfFontFamily.helvetica, 12));
-  //     textElement.font = PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold);
-  //     PdfLayoutResult layoutResult = textElement.draw(
-  //         page: page,
-  //         bounds: Rect.fromLTWH(
-  //             250, textHeight, page.getClientSize().width - 250, page.getClientSize().height));
-  //     textElement = PdfTextElement(
-  //         text:
-  //         'Cable length :',
-  //         font: PdfStandardFont(PdfFontFamily.helvetica, 12));
-  //     textElement.font = PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold);
-  //     layoutResult = textElement.draw(
-  //         page: page,
-  //         bounds: Rect.fromLTWH(
-  //             250, textHeight + 70.0, page.getClientSize().width - 250, page.getClientSize().height));
-  //     textElement = PdfTextElement(
-  //         text:
-  //         'Cable number :',
-  //         font: PdfStandardFont(PdfFontFamily.helvetica, 12));
-  //     textElement.font = PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold);
-  //     layoutResult = textElement.draw(
-  //         page: page,
-  //         bounds: Rect.fromLTWH(
-  //             250, textHeight + 140, page.getClientSize().width - 250, page.getClientSize().height));
-  //     page.graphics.drawImage(
-  //         image,
-  //
-  //         Rect.fromLTWH(
-  //             30, height, 200, 200));
-  //     textElement = PdfTextElement(
-  //         text:
-  //         this.data[i]['category'].toString(),
-  //         font: PdfStandardFont(PdfFontFamily.helvetica, 12));
-  //     textElement.font = PdfStandardFont(PdfFontFamily.helvetica, 18,);
-  //     layoutResult = textElement.draw(
-  //         page: page,
-  //         bounds: Rect.fromLTWH(
-  //             400, textHeight, page.getClientSize().width - 250, page.getClientSize().height));
-  //     textElement = PdfTextElement(
-  //         text:
-  //         this.data[i]['length'].toString(),
-  //         font: PdfStandardFont(PdfFontFamily.helvetica, 12));
-  //     textElement.font = PdfStandardFont(PdfFontFamily.helvetica, 18,);
-  //     layoutResult = textElement.draw(
-  //         page: page,
-  //         bounds: Rect.fromLTWH(
-  //             400, textHeight + 70, page.getClientSize().width - 250, page.getClientSize().height));
-  //     textElement = PdfTextElement(
-  //         text:
-  //         this.data[i]['coil_no'].toString(),
-  //         font: PdfStandardFont(PdfFontFamily.helvetica, 12));
-  //     textElement.font = PdfStandardFont(PdfFontFamily.helvetica, 18,);
-  //     layoutResult = textElement.draw(
-  //         page: page,
-  //         bounds: Rect.fromLTWH(
-  //             400, textHeight + 140, page.getClientSize().width - 250, page.getClientSize().height));
-  //
-  //
-  //   }
-  //   grid.style.cellPadding = PdfPaddings(left: 2, top: 5);
-  //   this.requestPermission();
-  //   final path = join(
-  //     (await getExternalStorageDirectory()).path, //Temporary path
-  //     'hello.pdf',//${DateTime.now()}
-  //   );
-  //   var name = (DateTime.now()).millisecondsSinceEpoch;
-  //   var path1 = '/storage/emulated/0/Download/$name.pdf';
-  //   print(path1.toString());
-  //   await File(path1).writeAsBytes(document.save());
-  //   toaster('Saved to Download file', Colors.blueAccent);
-  //   document.dispose();
-  //   if(flag == 'share'){
-  //     Directory dir = await getExternalStorageDirectory();
-  //     var a = '/storage/emulated/0/Download';
-  //     File path2 = new File(a);
-  //     await io.File(path2.path+'/$name.pdf').exists().then((value) =>
-  //     {
-  //       print(path2),
-  //       print('true or false' + value.toString()),
-  //       Share.shareFiles(['${path2.path}/$name.pdf'], text: '')
-  //     });
-  //   }
-  // }
-
   toaster(msg, color){
     Fluttertoast.showToast(
       msg: msg,
@@ -427,8 +393,9 @@ class _DashboardPageState extends State<DashboardPage> {
       setState(() {
         this.name = this.storage.getItem('name').toString();
         this.type = this.storage.getItem('type').toString();
+        this.cust_name = this.storage.getItem('customer').toString();
         this.data = (this.storage.getItem('tabledata.json') == null)?[]:(this.storage.getItem('tabledata.json'));
-        this.data.sort((a,b) => a['coil_no'].compareTo(b['coil_no']));
+        // this.data.sort((a,b) => a['coil_no'].compareTo(b['coil_no']));
       }),
       this.formatData(),
       for(int i=0;this.data.length>i;i++){
@@ -440,28 +407,38 @@ class _DashboardPageState extends State<DashboardPage> {
     dataArray = [];
     dataLength = [];
     var code = [];
-    this.data.sort((a,b) => a['coil_no'].compareTo(b['coil_no']));
+    // this.data.sort((a,b) => a['coil_no'].compareTo(b['coil_no']));
     code = this.data.map((e) => e['coil_no']).toSet().toList();
     for(var i = 0;i<code.length;i++){
       dataArray.add(this.data.where((e) => e['coil_no'] == code[i]).toSet().toList());
       dataLength.add(this.data.where((e) => e['coil_no'] == code[i]).map((e) => int.parse(e['length'])).toList().reduce((a, b) => a + b));
       print(dataLength);
     }
-
   }
 
+  licenceCheck(){    // not used
+    var date = DateTime.now();
+    var dt = date.toString().substring(0,10);
+    if(dt.substring(0,4) != '2020' || dt.substring(5,7) != '12' || (int.parse(dt.substring(8,10)) > 30)){
+      this.storage.ready.then((value) =>
+      {
+        storage.setItem('isLoggedIn', 'false'),
+        Get.off(MyHomePage()),
+        toaster('Validity Expired', Colors.red)
+      });
+    }
+  }
 
   void initState() {
     super.initState();
-
-    // this.requestPermission();
+  // this.licenceCheck();
     this.getData();
   }
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Color(0xFF292929),
-        title: const Text('QR Scanner'),
+        title: const Text('NetLink'),
         actions: [
           IconButton(
             icon: Icon(Icons.exit_to_app),
@@ -487,10 +464,22 @@ class _DashboardPageState extends State<DashboardPage> {
               var scaning = (await BarcodeScanner.scan());
               txt1 = RegExp(r'^[a-zA-Z0-9]+$');
               txt2 = RegExp(r'^[0-9]+$');
-              if(scaning.rawContent.length == 15){//
+              if(scaning.rawContent.length == 15){
 
                 var code = '';
-                if(scaning.rawContent.substring(0,7) == '000006F'){
+                if(scaning.rawContent.substring(0,7) == '000002F'){
+                  code = '2F SM';
+                }
+                else if(scaning.rawContent.substring(0,7) == '00002FY'){
+                  code = '2F SM YARN';
+                }
+                else if(scaning.rawContent.substring(0,7) == '000004F'){
+                  code = '4F SM';
+                }
+                else if(scaning.rawContent.substring(0,7) == '00004FY'){
+                  code = '4F SM YARN';
+                }
+                else if(scaning.rawContent.substring(0,7) == '000006F'){
                   code = '6F SM';
                 }
                 else if(scaning.rawContent.substring(0,7) == '00006FY'){
@@ -606,526 +595,6 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
       body: SingleChildScrollView(
         child:
-        // Column(
-        //   mainAxisSize: MainAxisSize.max,
-        //   mainAxisAlignment: MainAxisAlignment.start,
-        //   crossAxisAlignment: CrossAxisAlignment.start,
-        //   children: [
-        //     Padding(
-        //       padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-        //       child: Row(
-        //         children: [
-        //           Text(':: ', style: TextStyle(fontWeight: FontWeight.w900 , fontSize: 18, height: 1),),
-        //           Text('AF', style: TextStyle(fontWeight: FontWeight.bold , fontSize: 16),),
-        //         ],
-        //       ),
-        //     ),
-        //     Card(
-        //       elevation: 2.0,
-        //       child: Container(
-        //         width: MediaQuery.of(context).size.width * 65,
-        //           child: Padding(
-        //             padding: const EdgeInsets.all(8.0),
-        //             child: Row(
-        //               mainAxisSize: MainAxisSize.max,
-        //               crossAxisAlignment: CrossAxisAlignment.start,
-        //               mainAxisAlignment: MainAxisAlignment.start,
-        //               children: [
-        //                 Container(
-        //                   // width: MediaQuery.of(context).size.width * 0.65 * 0.5,
-        //                     child:InkWell(
-        //                       child: ClipRRect(
-        //                         borderRadius: BorderRadius.circular(6.0),
-        //                         child: Image.file(File(data[0]['image']),
-        //                           width: 65,
-        //                           height: 65,
-        //                           fit: BoxFit.cover,
-        //                         ),
-        //                       ),
-        //                       onTap: (){
-        //                         _showdialogimage(context,data[0]);
-        //                       },
-        //                     ),
-        //                 ),
-        //                 SizedBox(width: 30,),
-        //                 Container(
-        //                   height: 65,
-        //                     child: Column(
-        //                       crossAxisAlignment: CrossAxisAlignment.start,
-        //                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        //                       mainAxisSize: MainAxisSize.max,
-        //                       children: [
-        //                         // Row(
-        //                         //   children: [
-        //                         //     Container(
-        //                         //       child: Text('Code', style: TextStyle(
-        //                         //         fontWeight: FontWeight.bold,
-        //                         //         color: Color(0xFF292929)
-        //                         //       ),),
-        //                         //       width: 75,
-        //                         //     ),
-        //                         //     // Icon(
-        //                         //     //   Icons.category
-        //                         //     // ),
-        //                         //     Text(': ' , style: TextStyle(
-        //                         //         fontWeight: FontWeight.bold,
-        //                         //         color: Color(0xFF292929)
-        //                         //     ),),
-        //                         //     Text('AF'),
-        //                         //   ],
-        //                         // ),
-        //                         Row(
-        //                           children: [
-        //                             Container(
-        //                               child: Text('Cable No.', style: TextStyle(
-        //                                   fontWeight: FontWeight.bold
-        //                               ),),
-        //                               width: 75,
-        //                             ),
-        //                             // Icon(
-        //                             //   Icons.category
-        //                             // ),
-        //                             Text(': ' , style: TextStyle(
-        //                                 fontWeight: FontWeight.bold
-        //                             ),),
-        //                             Text('7890'),
-        //                           ],
-        //                         ),
-        //                         Row(
-        //                           children: [
-        //                             Container(
-        //                               child: Text('Length', style: TextStyle(
-        //                                   fontWeight: FontWeight.bold,
-        //                                   color: Color(0xFF292929)
-        //                               ),),
-        //                               width: 75,
-        //                             ),
-        //                             // Icon(
-        //                             //   Icons.category
-        //                             // ),
-        //                             Text(': ' , style: TextStyle(
-        //                                 fontWeight: FontWeight.bold
-        //                             ),),
-        //                             Text('3450'),
-        //                           ],
-        //                         ),
-        //
-        //                         // Text('hello'),
-        //                       ],
-        //                     )
-        //                 ),
-        //                 Container(
-        //                   width: MediaQuery.of(context).size.width * .40,
-        //                   height: 65,
-        //                   child: InkWell(
-        //                     child: Row(
-        //                       mainAxisSize: MainAxisSize.max,
-        //                       mainAxisAlignment: MainAxisAlignment.end,
-        //                       crossAxisAlignment: CrossAxisAlignment.end,
-        //                       children: [
-        //                         Icon(
-        //                           Icons.delete,
-        //                           size: 20,
-        //                           color: Colors.red[900],
-        //                         ),
-        //                         Text('Delete',style: TextStyle(color: Colors.red[900], fontWeight: FontWeight.w400,height: 1.7),)
-        //                       ],
-        //                     ),
-        //                   ),
-        //                 )
-        //               ],
-        //             ),
-        //           )
-        //       ),
-        //     ),
-        //     Card(
-        //       elevation: 2.0,
-        //       child: Container(
-        //           width: MediaQuery.of(context).size.width * 65,
-        //           child: Padding(
-        //             padding: const EdgeInsets.all(8.0),
-        //             child: Row(
-        //               mainAxisSize: MainAxisSize.max,
-        //               crossAxisAlignment: CrossAxisAlignment.start,
-        //               mainAxisAlignment: MainAxisAlignment.start,
-        //               children: [
-        //                 Container(
-        //                   // width: MediaQuery.of(context).size.width * 0.65 * 0.5,
-        //                   child:InkWell(
-        //                     child: ClipRRect(
-        //                       borderRadius: BorderRadius.circular(6.0),
-        //                       child: Image.file(File(data[1]['image']),
-        //                         width: 65,
-        //                         height: 65,
-        //                         fit: BoxFit.cover,
-        //                       ),
-        //                     ),
-        //                     onTap: (){
-        //                       _showdialogimage(context,data[1]);
-        //                     },
-        //                   ),
-        //                 ),
-        //                 SizedBox(width: 30,),
-        //                 Container(
-        //                     height: 65,
-        //                     child: Column(
-        //                       crossAxisAlignment: CrossAxisAlignment.start,
-        //                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        //                       mainAxisSize: MainAxisSize.max,
-        //                       children: [
-        //                         // Row(
-        //                         //   children: [
-        //                         //     Container(
-        //                         //       child: Text('Code', style: TextStyle(
-        //                         //         fontWeight: FontWeight.bold,
-        //                         //         color: Color(0xFF292929)
-        //                         //       ),),
-        //                         //       width: 75,
-        //                         //     ),
-        //                         //     // Icon(
-        //                         //     //   Icons.category
-        //                         //     // ),
-        //                         //     Text(': ' , style: TextStyle(
-        //                         //         fontWeight: FontWeight.bold,
-        //                         //         color: Color(0xFF292929)
-        //                         //     ),),
-        //                         //     Text('AF'),
-        //                         //   ],
-        //                         // ),
-        //                         Row(
-        //                           children: [
-        //                             Container(
-        //                               child: Text('Cable No.', style: TextStyle(
-        //                                   fontWeight: FontWeight.bold
-        //                               ),),
-        //                               width: 75,
-        //                             ),
-        //                             // Icon(
-        //                             //   Icons.category
-        //                             // ),
-        //                             Text(': ' , style: TextStyle(
-        //                                 fontWeight: FontWeight.bold
-        //                             ),),
-        //                             Text('7890'),
-        //                           ],
-        //                         ),
-        //                         Row(
-        //                           children: [
-        //                             Container(
-        //                               child: Text('Length', style: TextStyle(
-        //                                   fontWeight: FontWeight.bold,
-        //                                   color: Color(0xFF292929)
-        //                               ),),
-        //                               width: 75,
-        //                             ),
-        //                             // Icon(
-        //                             //   Icons.category
-        //                             // ),
-        //                             Text(': ' , style: TextStyle(
-        //                                 fontWeight: FontWeight.bold
-        //                             ),),
-        //                             Text('3450'),
-        //                           ],
-        //                         ),
-        //
-        //                         // Text('hello'),
-        //                       ],
-        //                     )
-        //                 ),
-        //                 Container(
-        //                   width: MediaQuery.of(context).size.width * .40,
-        //                   height: 65,
-        //                   child: InkWell(
-        //                     child: Row(
-        //                       mainAxisSize: MainAxisSize.max,
-        //                       mainAxisAlignment: MainAxisAlignment.end,
-        //                       crossAxisAlignment: CrossAxisAlignment.end,
-        //                       children: [
-        //                         Icon(
-        //                           Icons.delete,
-        //                           size: 20,
-        //                           color: Colors.red[900],
-        //                         ),
-        //                         Text('Delete',style: TextStyle(color: Colors.red[900], fontWeight: FontWeight.w400,height: 1.7),)
-        //                       ],
-        //                     ),
-        //                   ),
-        //                 )
-        //               ],
-        //             ),
-        //           )
-        //       ),
-        //     ),
-        //     Padding(
-        //       padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-        //       child: Row(
-        //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        //         children: [
-        //           Text('No. of Records: 2', style: TextStyle(fontWeight: FontWeight.bold , fontSize: 16, color: Colors.blueGrey),),
-        //           Text('Length: 7234', style: TextStyle(fontWeight: FontWeight.bold , fontSize: 16, color: Colors.blueGrey),),
-        //         ],
-        //       ),
-        //     ),
-        //     SizedBox(height: 10,),
-        //     Padding(
-        //       padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-        //       child: Row(
-        //         children: [
-        //           Text(':: ', style: TextStyle(fontWeight: FontWeight.w900 , fontSize: 18, height: 1),),
-        //           Text('1F', style: TextStyle(fontWeight: FontWeight.bold , fontSize: 16),),
-        //         ],
-        //       ),
-        //     ),
-        //     Card(
-        //       elevation: 2.0,
-        //       child: Container(
-        //           width: MediaQuery.of(context).size.width * 65,
-        //           child: Padding(
-        //             padding: const EdgeInsets.all(8.0),
-        //             child: Row(
-        //               mainAxisSize: MainAxisSize.max,
-        //               crossAxisAlignment: CrossAxisAlignment.start,
-        //               mainAxisAlignment: MainAxisAlignment.start,
-        //               children: [
-        //                 Container(
-        //                   // width: MediaQuery.of(context).size.width * 0.65 * 0.5,
-        //                   child:InkWell(
-        //                     child: ClipRRect(
-        //                       borderRadius: BorderRadius.circular(6.0),
-        //                       child: Image.file(File(data[0]['image']),
-        //                         width: 65,
-        //                         height: 65,
-        //                         fit: BoxFit.cover,
-        //                       ),
-        //                     ),
-        //                     onTap: (){
-        //                       _showdialogimage(context,data[0]);
-        //                     },
-        //                   ),
-        //                 ),
-        //                 SizedBox(width: 30,),
-        //                 Container(
-        //                     height: 65,
-        //                     child: Column(
-        //                       crossAxisAlignment: CrossAxisAlignment.start,
-        //                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        //                       mainAxisSize: MainAxisSize.max,
-        //                       children: [
-        //                         // Row(
-        //                         //   children: [
-        //                         //     Container(
-        //                         //       child: Text('Code', style: TextStyle(
-        //                         //         fontWeight: FontWeight.bold,
-        //                         //         color: Color(0xFF292929)
-        //                         //       ),),
-        //                         //       width: 75,
-        //                         //     ),
-        //                         //     // Icon(
-        //                         //     //   Icons.category
-        //                         //     // ),
-        //                         //     Text(': ' , style: TextStyle(
-        //                         //         fontWeight: FontWeight.bold,
-        //                         //         color: Color(0xFF292929)
-        //                         //     ),),
-        //                         //     Text('AF'),
-        //                         //   ],
-        //                         // ),
-        //                         Row(
-        //                           children: [
-        //                             Container(
-        //                               child: Text('Cable No.', style: TextStyle(
-        //                                   fontWeight: FontWeight.bold
-        //                               ),),
-        //                               width: 75,
-        //                             ),
-        //                             // Icon(
-        //                             //   Icons.category
-        //                             // ),
-        //                             Text(': ' , style: TextStyle(
-        //                                 fontWeight: FontWeight.bold
-        //                             ),),
-        //                             Text('7890'),
-        //                           ],
-        //                         ),
-        //                         Row(
-        //                           children: [
-        //                             Container(
-        //                               child: Text('Length', style: TextStyle(
-        //                                   fontWeight: FontWeight.bold,
-        //                                   color: Color(0xFF292929)
-        //                               ),),
-        //                               width: 75,
-        //                             ),
-        //                             // Icon(
-        //                             //   Icons.category
-        //                             // ),
-        //                             Text(': ' , style: TextStyle(
-        //                                 fontWeight: FontWeight.bold
-        //                             ),),
-        //                             Text('3450'),
-        //                           ],
-        //                         ),
-        //
-        //                         // Text('hello'),
-        //                       ],
-        //                     )
-        //                 ),
-        //                 Container(
-        //                   width: MediaQuery.of(context).size.width * .40,
-        //                   height: 65,
-        //                   child: InkWell(
-        //                     child: Row(
-        //                       mainAxisSize: MainAxisSize.max,
-        //                       mainAxisAlignment: MainAxisAlignment.end,
-        //                       crossAxisAlignment: CrossAxisAlignment.end,
-        //                       children: [
-        //                         Icon(
-        //                           Icons.delete,
-        //                           size: 20,
-        //                           color: Colors.red[900],
-        //                         ),
-        //                         Text('Delete',style: TextStyle(color: Colors.red[900], fontWeight: FontWeight.w400,height: 1.7),)
-        //                       ],
-        //                     ),
-        //                   ),
-        //                 )
-        //               ],
-        //             ),
-        //           )
-        //       ),
-        //     ),
-        //     Card(
-        //       elevation: 2.0,
-        //       child: Container(
-        //           width: MediaQuery.of(context).size.width * 65,
-        //           child: Padding(
-        //             padding: const EdgeInsets.all(8.0),
-        //             child: Row(
-        //               mainAxisSize: MainAxisSize.max,
-        //               crossAxisAlignment: CrossAxisAlignment.start,
-        //               mainAxisAlignment: MainAxisAlignment.start,
-        //               children: [
-        //                 Container(
-        //                   // width: MediaQuery.of(context).size.width * 0.65 * 0.5,
-        //                   child:InkWell(
-        //                     child: ClipRRect(
-        //                       borderRadius: BorderRadius.circular(6.0),
-        //                       child: Image.file(File(data[1]['image']),
-        //                         width: 65,
-        //                         height: 65,
-        //                         fit: BoxFit.cover,
-        //                       ),
-        //                     ),
-        //                     onTap: (){
-        //                       _showdialogimage(context,data[1]);
-        //                     },
-        //                   ),
-        //                 ),
-        //                 SizedBox(width: 30,),
-        //                 Container(
-        //                     height: 65,
-        //                     child: Column(
-        //                       crossAxisAlignment: CrossAxisAlignment.start,
-        //                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        //                       mainAxisSize: MainAxisSize.max,
-        //                       children: [
-        //                         // Row(
-        //                         //   children: [
-        //                         //     Container(
-        //                         //       child: Text('Code', style: TextStyle(
-        //                         //         fontWeight: FontWeight.bold,
-        //                         //         color: Color(0xFF292929)
-        //                         //       ),),
-        //                         //       width: 75,
-        //                         //     ),
-        //                         //     // Icon(
-        //                         //     //   Icons.category
-        //                         //     // ),
-        //                         //     Text(': ' , style: TextStyle(
-        //                         //         fontWeight: FontWeight.bold,
-        //                         //         color: Color(0xFF292929)
-        //                         //     ),),
-        //                         //     Text('AF'),
-        //                         //   ],
-        //                         // ),
-        //                         Row(
-        //                           children: [
-        //                             Container(
-        //                               child: Text('Cable No.', style: TextStyle(
-        //                                   fontWeight: FontWeight.bold
-        //                               ),),
-        //                               width: 75,
-        //                             ),
-        //                             // Icon(
-        //                             //   Icons.category
-        //                             // ),
-        //                             Text(': ' , style: TextStyle(
-        //                                 fontWeight: FontWeight.bold
-        //                             ),),
-        //                             Text('7890'),
-        //                           ],
-        //                         ),
-        //                         Row(
-        //                           children: [
-        //                             Container(
-        //                               child: Text('Length', style: TextStyle(
-        //                                   fontWeight: FontWeight.bold,
-        //                                   color: Color(0xFF292929)
-        //                               ),),
-        //                               width: 75,
-        //                             ),
-        //                             // Icon(
-        //                             //   Icons.category
-        //                             // ),
-        //                             Text(': ' , style: TextStyle(
-        //                                 fontWeight: FontWeight.bold
-        //                             ),),
-        //                             Text('3450'),
-        //                           ],
-        //                         ),
-        //
-        //                         // Text('hello'),
-        //                       ],
-        //                     )
-        //                 ),
-        //                 Container(
-        //                   width: MediaQuery.of(context).size.width * .40,
-        //                   height: 65,
-        //                   child: InkWell(
-        //                     child: Row(
-        //                       mainAxisSize: MainAxisSize.max,
-        //                       mainAxisAlignment: MainAxisAlignment.end,
-        //                       crossAxisAlignment: CrossAxisAlignment.end,
-        //                       children: [
-        //                         Icon(
-        //                           Icons.delete,
-        //                           size: 20,
-        //                           color: Colors.red[900],
-        //                         ),
-        //                         Text('Delete',style: TextStyle(color: Colors.red[900], fontWeight: FontWeight.w400,height: 1.7),)
-        //                       ],
-        //                     ),
-        //                   ),
-        //                 )
-        //               ],
-        //             ),
-        //           )
-        //       ),
-        //     ),
-        //     Padding(
-        //       padding: const EdgeInsets.only(left: 8.0, top: 8.0),
-        //       child: Row(
-        //         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        //         children: [
-        //           Text('No. of Records: 2', style: TextStyle(fontWeight: FontWeight.bold , fontSize: 16, color: Colors.blueGrey),),
-        //           Text('Length: 7234', style: TextStyle(fontWeight: FontWeight.bold , fontSize: 16, color: Colors.blueGrey),),
-        //         ],
-        //       ),
-        //     ),
-        //     SizedBox(height: 10,),
-        //   ],
-        // )
-
         Column(
           children: [
             SizedBox(height: 20,),
@@ -1134,7 +603,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 TableRow(
                     children: [
                       TableCell(
-                        child: Text('Total Records: '+ this.data.length.toString() , textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,height: 1.4, color: Colors.grey[900]),),
+                        child: Text('Total Coils: '+ this.data.length.toString() , textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,height: 1.4, color: Colors.grey[900]),),
                       ),
                       TableCell(
                         child: Text('Total Length: '+ this.length.toString() , textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, height: 1.4, color: Colors.grey[900]),),
@@ -1291,24 +760,6 @@ class _DashboardPageState extends State<DashboardPage> {
                                 ),
                               ),
                             ),
-                          // TableCell(
-                          //   child:Container(
-                          //     // color: Colors.teal[100],
-                          //     child: InkWell(
-                          //       onTap: (){
-                          //         _showdialog(context,data, 1);
-                          //         setState(() {
-                          //         });
-                          //       },
-                          //       child: Center(
-                          //         child: Padding(
-                          //           padding: const EdgeInsets.all(4.0),
-                          //           child: Icon(Icons.add, size: 28,
-                          //           ),
-                          //         ),
-                          //       )),
-                          //   ),
-                          // )
                         ]
                       ),
                       // for(var i in data)
@@ -1332,7 +783,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     TableRow(
                       children: [
                         TableCell(
-                          child: Text('No of Records: '+ this.dataArray[i].length.toString() , textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700]),),
+                          child: Text('No of Coils: '+ this.dataArray[i].length.toString() , textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700]),),
                         ),
                         TableCell(
                           child: Text('Length: '+ this.dataLength[i].toString() , textAlign: TextAlign.center, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[700]),),
@@ -1362,6 +813,7 @@ class _DashboardPageState extends State<DashboardPage> {
       child: Text("Continue"),
       onPressed:  () {
         Navigator.of(context).pop();
+
         if(i == ''){
           setState(() {
             this.data = [];
@@ -1369,9 +821,10 @@ class _DashboardPageState extends State<DashboardPage> {
           });
         }
         else{
-
+          var flag = this.data.indexWhere((element) => element['category'] == data);
+          print('index:'+flag.toString());
           setState(() {
-            this.data.removeAt(i);
+            this.data.removeAt(flag);
           });
         }
         this.storage.ready.then((value) => {
@@ -1452,7 +905,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   InkWell(
                       onTap: (){
                         print(i);
-                        showAlertDialog(context, data['coil_no'].toString() + data['length'].toString() + data['category'].toString(), i);
+                        showAlertDialog(context, data['category'].toString(), i);
                       },
                       child: Padding(
                         padding: const EdgeInsets.all(5.0),
@@ -1505,7 +958,19 @@ class _DashboardPageState extends State<DashboardPage> {
                 data = {};
                 if(text2.length == 15){
                   var code = '';
-                  if(text2.substring(0,7) == '000006F'){
+                  if(text2.substring(0,7) == '000002F'){
+                    code = '2F SM';
+                  }
+                  else if(text2.substring(0,7) == '00002FY'){
+                    code = '2F SM YARN';
+                  }
+                  else if(text2.substring(0,7) == '000004F'){
+                    code = '4F SM';
+                  }
+                  else if(text2.substring(0,7) == '00004FY'){
+                    code = '4F SM YARN';
+                  }
+                  else if(text2.substring(0,7) == '000006F'){
                     code = '6F SM';
                   }
                   else if(text2.substring(0,7) == '00006FY'){

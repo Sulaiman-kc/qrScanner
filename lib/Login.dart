@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:localstorage/localstorage.dart';
 import 'package:loading/loading.dart';
 import 'package:loading/indicator/ball_pulse_indicator.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
 import 'Dashboard.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -18,18 +22,48 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   bool _isLogin = false;
   String username = '';
+  String cust_name = '';
   String password = '';
-  bool error = false;
+  bool error = true;
   bool valueError = false;
   final LocalStorage storage = new LocalStorage('data');
   List values =  ["Purchase", "Transfer", "Sale"];
   String value = '';
+  String newUser = '';
+  String newUserPassword = '';
+  String authCode = '';
+  bool isAuthTrue = false;
+  List user = [];
+
+
+  toaster(msg, color){
+    Fluttertoast.showToast(
+      msg: msg,
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.SNACKBAR,
+      timeInSecForIosWeb: 1,
+      backgroundColor: color,
+      textColor: Colors.white,
+      fontSize: 16.0,
+    );
+  }
+
+
 
   void initState() {
     super.initState();
     setState(() {
-        // storage.setItem('tabledata.json', '[]');
-        this.storage.ready.then((value) => {
+        // storage.setItem('tabledata.json', []);
+          this.storage.ready.then((value) => {
+            if(storage.getItem('users.json') == null){
+              storage.setItem('users.json', []),
+              this.user = []
+              // print(storage.getItem('tabledata.json')),
+            }else{
+              print(storage.getItem('users.json')),
+              this.user = (storage.getItem('users.json')),
+            },
+
             setState((){
               _isLogin = true;
             }),
@@ -49,27 +83,37 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   _login(){
-    this.error = false;
+    // this.error = false;
     this.valueError = false;
-    if(this.username == 'admin' && this.password == 'admin' && this.value != ''){
-      this.storage.ready.then((value) => {
-        storage.setItem('isLoggedIn', 'true'),
-        storage.setItem('type', this.value.toString()),
-        storage.setItem('name', this.username.toString())
-      });
+    for(var i = 0 ; user.length > i ; i++ ){
+      if(this.username == user[i]['user'] && this.password == user[i]['password']){
+        this.storage.ready.then((value) => {
+          storage.setItem('isLoggedIn', 'true'),
+          storage.setItem('type', this.value.toString()),
+          storage.setItem('name', this.username.toString()),
+          storage.setItem('customer', this.cust_name.toString())
+        });
+
+        setState(() {
+          this.error = false;
+        });
+      }
+      else if(this.value == ''){
+        setState(() {
+          this.valueError = true;
+        });
+      }
+    }
+    print(error);
+    if(error){
+      toaster('Incorrect username or password', Colors.red);
+    }
+    else if(this.value == ''){
+      toaster('Select Type', Colors.red);
+    }else{
       Navigator.of(context).pushReplacement(MaterialPageRoute(
           builder: (_) => DashboardPage()
       ));
-    }
-    else if(this.username != 'admin' || this.password != 'admin'){
-      setState(() {
-        this.error = true;
-      });
-    }
-    else{
-      setState(() {
-        this.valueError = true;
-      });
     }
   }
 
@@ -96,14 +140,14 @@ class _MyHomePageState extends State<MyHomePage> {
                     title: TextField(
                       style: TextStyle(color: Colors.grey.shade800),
                       decoration: InputDecoration(
-                          hintText: "User name:",
+                          hintText: "User Name*",
                           hintStyle: TextStyle(color: Colors.grey.shade800),
                           border: InputBorder.none,
-                          icon: Icon(Icons.email, color: Colors.grey.shade800,)
+                          icon: Icon(Icons.account_circle, color: Colors.grey.shade800,)
                       ),
                       onChanged: (val){
                         setState(() {
-                          this.error = false;
+                          this.error = true;
                           this.username = val;
                         });
                       },
@@ -115,15 +159,32 @@ class _MyHomePageState extends State<MyHomePage> {
                       style: TextStyle(color: Colors.grey.shade800),
                       obscureText: true,
                       decoration: InputDecoration(
-                          hintText: "Password:",
+                          hintText: "Password*",
                           hintStyle: TextStyle(color: Colors.grey.shade800),
                           border: InputBorder.none,
                           icon: Icon(Icons.lock, color: Colors.grey.shade800,)
                       ),
                       onChanged: (val){
                         setState(() {
-                          this.error = false;
+                          this.error = true;
                           this.password = val;
+                        });
+                      },
+                    )
+                ),
+                Divider(color: Colors.grey.shade600,),
+                ListTile(
+                    title: TextField(
+                      style: TextStyle(color: Colors.grey.shade800),
+                      decoration: InputDecoration(
+                          hintText: "Customer Name (optional)",
+                          hintStyle: TextStyle(color: Colors.grey.shade800),
+                          border: InputBorder.none,
+                          icon: Icon(Icons.people_outline, color: Colors.grey.shade800,)
+                      ),
+                      onChanged: (val){
+                        setState(() {
+                          this.cust_name = val;
                         });
                       },
                     )
@@ -180,8 +241,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                 ),
                 SizedBox(height: 10,),
-                this.error?Text('Incorrect username or password', style: TextStyle(color: Colors.redAccent),):Container(),
-                this.valueError?Text('Select type', style: TextStyle(color: Colors.redAccent),):Container(),
+                // this.error?Text('Incorrect username or password', style: TextStyle(color: Colors.redAccent),):Container(),
+                // this.valueError?Text('Select type', style: TextStyle(color: Colors.redAccent),):Container(),
                 Row(
                   children: <Widget>[
                     Expanded(
@@ -189,6 +250,19 @@ class _MyHomePageState extends State<MyHomePage> {
                         onPressed: _login,
                         color: Color(0xFF2CA3D4),
                         child: Text('Login', style: TextStyle(color: Colors.white70, fontSize: 16.0),),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: RaisedButton(
+                        onPressed: () {
+                          _openPopup(context);
+                        },
+                        color: Color(0xFF2CA3D4),
+                        child: Text('Register User', style: TextStyle(color: Colors.white70, fontSize: 16.0),),
                       ),
                     ),
                   ],
@@ -201,5 +275,89 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
+  }
+  _openPopup(context) {
+    if(this.user.length == 0){
+      Alert(
+          context: context,
+          title: "Register User",
+          content: Column(
+            children: <Widget>[
+              TextField(
+                decoration: InputDecoration(
+                  icon: Icon(Icons.account_circle),
+                  labelText: 'Username',
+                ),
+                onChanged: (val){
+                  this.newUser = val;
+                  Codec<String, String> stringToBase64 = utf8.fuse(base64);
+                  String encoded = stringToBase64.encode(this.newUser);
+                  this.authCode = encoded;
+                  print(encoded);
+                },
+              ),
+              TextField(
+                obscureText: true,
+                decoration: InputDecoration(
+                  icon: Icon(Icons.lock),
+                  labelText: 'Password',
+                ),
+                onChanged: (val){
+                  this.newUserPassword = val;
+                },
+              ),
+              TextField(
+                obscureText: true,
+                decoration: InputDecoration(
+                  icon: Icon(Icons.lock_outline),
+                  labelText: 'Authentication',
+                ),
+                onChanged: (val){
+                  print(val);
+                  if(val == this.authCode){
+                    this.isAuthTrue =true;
+                  }
+                },
+              ),
+            ],
+          ),
+          buttons: [
+            DialogButton(
+              onPressed: () async{
+                var user = this.user;
+                var json = {};
+                if(isAuthTrue){
+                  setState(() {
+                    json['user'] = this.newUser;
+                    json['password'] = this.newUserPassword;
+                    user.add(json);
+                  });
+                  await this.storage.ready.then((value) =>
+                  {
+                    storage.setItem('users.json', user),
+                  });
+                  toaster('Successfully Registered', Colors.blue);
+                  Navigator.pop(context);
+                }
+                else{
+                  if(this.newUser == '' || this.newUserPassword == ''){
+                    toaster('Enter username and password', Colors.red);
+                  }
+                  else{
+                    toaster('Incorrect Authentication', Colors.red);
+                  }
+                }
+              },
+              child: Text(
+                "Register",
+                style: TextStyle(color: Colors.white, fontSize: 16),
+              ),
+            )
+          ]
+      ).show();
+    }
+    else{
+      toaster('User Already Exist', Color(0XFFFFAE42));
+    }
   }
 }
